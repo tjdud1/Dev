@@ -1,0 +1,45 @@
+name: "Dev"
+description: "현재 저장소의 소스 코드를 스캔하고, Secrets에 저장된 API 키를 사용해 LLM API에 전송한 후, API 응답을 아티팩트로 업로드합니다."
+runs:
+  using: "composite"
+  steps:
+    # 현재 저장소 체크아웃
+    - name: Checkout current repository
+      uses: actions/checkout@v3
+
+    # Dev 저장소 체크아웃
+    - name: Checkout Dev repository
+      uses: actions/checkout@v3
+      with:
+        repository: tjdud1/Dev
+        ref: main
+        path: dev
+
+    # Python 3.12 환경 설정
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+
+    # 종속성 설치
+    - name: Install required packages
+      shell: bash
+      run: |
+        pip install --upgrade pip
+        pip install requests groq bandit
+
+    # 스캔 및 LLM API 요청 실행 (API 키는 GitHub Secrets에서 불러옴)
+    - name: Run source code scan and LLM API request
+      shell: bash
+      env:
+        LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      run: |
+        python dev/scan_llm.py --api-key "$LLM_API_KEY"
+
+    # 결과 아티팩트 업로드
+    - name: Upload LLM API Response Artifact
+      uses: actions/upload-artifact@v4.6.1
+      with:
+        name: llm-response
+        path: response.txt
+
